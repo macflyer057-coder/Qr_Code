@@ -3,68 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scan QR Wagon</title>
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2563eb">
+<title>Scan Wagon</title>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
 
 <style>
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
+    font-family: Arial;
     padding: 20px;
-    background: #f3f4f6;
 }
 
-h1 {
-    text-align: center;
+input {
+    padding: 10px;
+    width: 100%;
+    margin-bottom: 15px;
+    font-size: 16px;
 }
 
 button {
-    padding: 12px 20px;
+    padding: 12px;
     font-size: 16px;
     background: #2563eb;
     color: white;
     border: none;
+    width: 100%;
     border-radius: 6px;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #1e40af;
 }
 
 #reader {
-    width: 100%;
-    max-width: 400px;
-    margin: 20px auto;
+    margin-top: 20px;
 }
 
 #result {
     margin-top: 20px;
-    padding: 15px;
-    background: white;
-    border-radius: 6px;
-    word-break: break-word;
-}
-
-.hidden {
-    display: none;
+    padding: 10px;
+    background: #f3f3f3;
 }
 </style>
 </head>
 
 <body>
 
-<h1>Scanner QR Wagon</h1>
+<h2>Enregistrement Wagon</h2>
 
-<div style="text-align:center;">
-    <button onclick="startScanner()">Scanner un QR Code</button>
-</div>
+<label>Numéro de wagon :</label>
+<input type="text" id="wagonNumber" placeholder="Ex: 458796">
 
-<div id="reader" class="hidden"></div>
+<button onclick="startScanner()">Scanner QR Code</button>
+
+<div id="reader"></div>
 
 <div id="result"></div>
 
@@ -74,38 +61,21 @@ let html5QrCode;
 
 function startScanner() {
 
-    document.getElementById("reader").classList.remove("hidden");
-    document.getElementById("result").innerHTML = "";
-
     html5QrCode = new Html5Qrcode("reader");
 
     html5QrCode.start(
         { facingMode: "environment" },
-        {
-            fps: 10,
-            qrbox: 250
-        },
+        { fps: 10, qrbox: 250 },
         (decodedText) => {
-            showResult(decodedText);
-        },
-        (errorMessage) => {
-            // erreurs ignorées volontairement
+
+            document.getElementById("result").innerHTML =
+                "<strong>QR détecté :</strong><br>" + decodedText +
+                "<br><br><strong>Wagon :</strong> " +
+                document.getElementById("wagonNumber").value;
+
+            html5QrCode.stop();
         }
-    ).catch(err => {
-        alert("Erreur caméra : " + err);
-    });
-}
-
-function showResult(text) {
-
-    document.getElementById("result").innerHTML =
-        "<strong>QR détecté :</strong><br>" + text;
-
-    if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            document.getElementById("reader").classList.add("hidden");
-        });
-    }
+    ).catch(err => alert("Erreur caméra : " + err));
 }
 
 </script>
