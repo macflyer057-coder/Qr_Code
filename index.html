@@ -1,84 +1,1375 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scan Wagon</title>
-
-<script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
-
-<style>
-body {
-    font-family: Arial;
-    padding: 20px;
-}
-
-input {
-    padding: 10px;
-    width: 100%;
-    margin-bottom: 15px;
-    font-size: 16px;
-}
-
-button {
-    padding: 12px;
-    font-size: 16px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    width: 100%;
-    border-radius: 6px;
-}
-
-#reader {
-    margin-top: 20px;
-}
-
-#result {
-    margin-top: 20px;
-    padding: 10px;
-    background: #f3f3f3;
-}
-</style>
-</head>
-
-<body>
-
-<h2>Enregistrement Wagon</h2>
-
-<label>Numéro de wagon :</label>
-<input type="text" id="wagonNumber" placeholder="Ex: 458796">
-
-<button onclick="startScanner()">Scanner QR Code</button>
-
-<div id="reader"></div>
-
-<div id="result"></div>
-
-<script>
-
-let html5QrCode;
-
-function startScanner() {
-
-    html5QrCode = new Html5Qrcode("reader");
-
-    html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        (decodedText) => {
-
-            document.getElementById("result").innerHTML =
-                "<strong>QR détecté :</strong><br>" + decodedText +
-                "<br><br><strong>Wagon :</strong> " +
-                document.getElementById("wagonNumber").value;
-
-            html5QrCode.stop();
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Scanner QR Code pour wagons - Scan d'essieux et gestion d'historique">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>Scanner QR Code</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-    ).catch(err => alert("Erreur caméra : " + err));
-}
 
-</script>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            background: #e8ebff;
+            border-color: #764ba2;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #667eea;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .upload-subtext {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .result-area {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            border-radius: 8px;
+        }
+
+        .result-area.show {
+            display: block;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #0369a1;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .result-content {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            color: #1e293b;
+            font-size: 1em;
+            line-height: 1.6;
+        }
+
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .data-table tr {
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+        }
+
+        .data-table td:first-child {
+            font-weight: 600;
+            color: #0369a1;
+            background: #f8fafc;
+            width: 30%;
+        }
+
+        .data-table td:last-child {
+            color: #1e293b;
+        }
+
+        .raw-data {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+            font-size: 0.85em;
+            color: #64748b;
+        }
+
+        .raw-data-toggle {
+            cursor: pointer;
+            color: #667eea;
+            font-size: 0.85em;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        .raw-data-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .error-area {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            border-radius: 8px;
+            color: #991b1b;
+        }
+
+        .error-area.show {
+            display: block;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .history-header h2 {
+            color: #1e293b;
+            font-size: 1.5em;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95em;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .history-item {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .history-date {
+            font-size: 0.85em;
+            color: #64748b;
+        }
+
+        .history-content {
+            color: #1e293b;
+            font-size: 0.9em;
+            word-wrap: break-word;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .history-mini-table {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px 15px;
+            font-size: 0.9em;
+        }
+
+        .history-mini-table .label {
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .history-mini-table .value {
+            color: #1e293b;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+        }
+
+        .empty-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .wagon-info-display {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e2e8f0;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .axle-list {
+            margin-top: 20px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .axle-item {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .axle-item.scanned {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .axle-number {
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .axle-status {
+            font-size: 1.2em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow: hidden;
+            animation: slideUp 0.3s;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            color: #64748b;
+            line-height: 1;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+        }
+
+        .modal-close:hover {
+            color: #1e293b;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 2px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            aspect-ratio: 4/3;
+        }
+
+        #cameraVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .camera-frame {
+            width: 250px;
+            height: 250px;
+            border: 3px solid #667eea;
+            border-radius: 12px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
+
+        .method-btn {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .btn-icon {
+            padding: 8px 12px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .stats {
+                flex-direction: column;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 Scanner QR Code</h1>
+            <p>Scannez, stockez et exportez vos QR codes facilement</p>
+        </div>
+
+        <div class="card">
+            <div id="wagonForm">
+                <h2 style="color: #1e293b; margin-bottom: 20px;">🚂 Informations du wagon</h2>
+                
+                <div style="margin-bottom: 20px;">
+                    <label for="wagonNumber" style="display: block; font-weight: 600; margin-bottom: 8px; color: #475569;">
+                        N° d'immatriculation du wagon *
+                    </label>
+                    <input type="text" id="wagonNumber" class="search-input" placeholder="Ex: 33 87 6682 012-3" maxlength="19" required>
+                    <div style="font-size: 0.85em; color: #64748b; margin-top: 5px;">
+                        Format : xx xx xxxx xxx-x
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label for="axleCount" style="display: block; font-weight: 600; margin-bottom: 8px; color: #475569;">
+                        Nombre d'essieux à scanner *
+                    </label>
+                    <input type="number" id="axleCount" class="search-input" placeholder="Ex: 4" min="1" max="20" required>
+                </div>
+
+                <button class="btn btn-primary" id="startScanBtn" style="width: 100%; padding: 15px; font-size: 1.1em;">
+                    🚀 Démarrer le scan
+                </button>
+            </div>
+
+            <div id="scanningArea" style="display: none;">
+                <div class="wagon-info-display">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div>
+                            <div style="font-size: 0.85em; color: #64748b; margin-bottom: 5px;">Wagon en cours</div>
+                            <div style="font-size: 1.3em; font-weight: bold; color: #1e293b;" id="currentWagon"></div>
+                        </div>
+                        <button class="btn btn-secondary" id="newWagonBtn">🔄 Nouveau wagon</button>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="font-weight: 600; color: #475569;">Progression du scan</span>
+                            <span style="font-weight: 600; color: #667eea;" id="progressText">0/0</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 0.9em; color: #64748b;" id="progressMessage">
+                            Scannez le premier essieu
+                        </div>
+                    </div>
+                </div>
+
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <div class="upload-text">Scannez l'essieu <span id="currentAxle">1</span></div>
+                    <div class="upload-subtext">Cliquez pour choisir : Caméra ou Image</div>
+                </div>
+                <input type="file" id="fileInput" accept="image/*">
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+                
+                <div id="cameraModal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>📸 Scanner avec la caméra</h3>
+                            <button class="modal-close" id="closeCamera">&times;</button>
+                        </div>
+                        <div class="camera-container">
+                            <video id="cameraVideo" autoplay playsinline></video>
+                            <canvas id="cameraCanvas" style="display: none;"></canvas>
+                            <div class="camera-overlay">
+                                <div class="camera-frame"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" id="cancelCamera">❌ Annuler</button>
+                            <button class="btn btn-primary" id="captureBtn">📷 Capturer</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="scanMethodModal" class="modal">
+                    <div class="modal-content" style="max-width: 400px;">
+                        <div class="modal-header">
+                            <h3>Choisir la méthode de scan</h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <button class="btn btn-primary method-btn" id="useCameraBtn">
+                                📸 Utiliser la caméra
+                            </button>
+                            <button class="btn btn-secondary method-btn" id="useFileBtn">
+                                🖼️ Choisir une image
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            <div class="result-area" id="resultArea">
+                <div class="result-label">✅ QR Code détecté</div>
+                <div class="result-content" id="resultContent"></div>
+            </div>
+
+            <div class="error-area" id="errorArea">
+                <strong>❌ Erreur :</strong> <span id="errorMessage"></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalScans">0</div>
+                    <div class="stat-label">Scans totaux</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="todayScans">0</div>
+                    <div class="stat-label">Aujourd'hui</div>
+                </div>
+            </div>
+
+            <div class="history-header">
+                <h2>📋 Historique</h2>
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="exportBtn">📊 Exporter CSV</button>
+                    <button class="btn btn-danger" id="clearBtn">🗑️ Effacer</button>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="🔍 Rechercher par N° de série, type, détenteur...">
+            </div>
+
+            <div id="historyList">
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <p>Aucun scan enregistré</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Storage management
+        const STORAGE_KEY = 'qr_scan_history';
+        const SESSION_KEY = 'current_wagon_session';
+        const FIELD_NAMES = ['N° de série', 'Type', 'Tonnage', 'Détenteur', 'Révision', 'Atelier'];
+
+        let currentSession = null;
+
+        function loadSession() {
+            const data = localStorage.getItem(SESSION_KEY);
+            return data ? JSON.parse(data) : null;
+        }
+
+        function saveSession(session) {
+            if (session) {
+                localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+            } else {
+                localStorage.removeItem(SESSION_KEY);
+            }
+            currentSession = session;
+        }
+
+        function startNewSession(wagonNumber, axleCount) {
+            const session = {
+                wagonNumber: wagonNumber,
+                totalAxles: parseInt(axleCount),
+                scannedAxles: [],
+                startTime: new Date().toISOString()
+            };
+            saveSession(session);
+            showScanningArea();
+            updateProgress();
+        }
+
+        function addAxleScan(content, axleNumber) {
+            if (!currentSession) return;
+
+            const parsed = parseQRData(content);
+            currentSession.scannedAxles.push({
+                axleNumber: axleNumber,
+                content: content,
+                parsedData: parsed,
+                timestamp: new Date().toISOString()
+            });
+
+            saveSession(currentSession);
+            updateProgress();
+
+            // Check if all axles are scanned
+            if (currentSession.scannedAxles.length >= currentSession.totalAxles) {
+                completeSession();
+            }
+        }
+
+        function completeSession() {
+            if (!currentSession) return;
+
+            // Save to history
+            const history = getHistory();
+            const sessionRecord = {
+                id: Date.now(),
+                type: 'wagon_session',
+                wagonNumber: currentSession.wagonNumber,
+                totalAxles: currentSession.totalAxles,
+                axles: currentSession.scannedAxles,
+                startTime: currentSession.startTime,
+                endTime: new Date().toISOString(),
+                timestamp: new Date().toISOString(),
+                date: new Date().toLocaleString('fr-FR')
+            };
+            
+            history.unshift(sessionRecord);
+            saveHistory(history);
+
+            // Clear session
+            saveSession(null);
+
+            // Show completion message
+            alert(`✅ Scan du wagon ${currentSession.wagonNumber} terminé!\n${currentSession.totalAxles} essieux scannés avec succès.`);
+            
+            // Reset to form
+            showWagonForm();
+        }
+
+        function showWagonForm() {
+            document.getElementById('wagonForm').style.display = 'block';
+            document.getElementById('scanningArea').style.display = 'none';
+            document.getElementById('wagonNumber').value = '';
+            document.getElementById('axleCount').value = '';
+            document.getElementById('resultArea').classList.remove('show');
+            document.getElementById('errorArea').classList.remove('show');
+        }
+
+        function showScanningArea() {
+            document.getElementById('wagonForm').style.display = 'none';
+            document.getElementById('scanningArea').style.display = 'block';
+            document.getElementById('currentWagon').textContent = currentSession.wagonNumber;
+            document.getElementById('resultArea').classList.remove('show');
+            document.getElementById('errorArea').classList.remove('show');
+        }
+
+        function updateProgress() {
+            if (!currentSession) return;
+
+            const scanned = currentSession.scannedAxles.length;
+            const total = currentSession.totalAxles;
+            const percentage = (scanned / total) * 100;
+
+            document.getElementById('progressText').textContent = `${scanned}/${total}`;
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+            document.getElementById('currentAxle').textContent = scanned + 1;
+
+            if (scanned === 0) {
+                document.getElementById('progressMessage').textContent = 'Scannez le premier essieu';
+            } else if (scanned < total) {
+                document.getElementById('progressMessage').textContent = `${total - scanned} essieu(x) restant(s)`;
+            } else {
+                document.getElementById('progressMessage').textContent = '✅ Tous les essieux sont scannés!';
+            }
+        }
+
+        function parseQRData(rawContent) {
+            const parts = rawContent.split('|').map(p => p.trim());
+            
+            if (parts.length === FIELD_NAMES.length) {
+                // Structured data detected
+                const structured = {};
+                FIELD_NAMES.forEach((field, index) => {
+                    structured[field] = parts[index];
+                });
+                return {
+                    isStructured: true,
+                    data: structured,
+                    raw: rawContent
+                };
+            } else {
+                // Unstructured data
+                return {
+                    isStructured: false,
+                    data: null,
+                    raw: rawContent
+                };
+            }
+        }
+
+        function getHistory() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveHistory(history) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            updateStats();
+            renderHistory();
+        }
+
+        function addScan(content) {
+            // Legacy function for non-wagon scans
+            const history = getHistory();
+            const parsed = parseQRData(content);
+            const scan = {
+                id: Date.now(),
+                content: content,
+                parsedData: parsed,
+                timestamp: new Date().toISOString(),
+                date: new Date().toLocaleString('fr-FR')
+            };
+            history.unshift(scan);
+            saveHistory(history);
+        }
+
+        function deleteScan(id) {
+            const history = getHistory().filter(scan => scan.id !== id);
+            saveHistory(history);
+        }
+
+        function clearAllHistory() {
+            if (confirm('Êtes-vous sûr de vouloir effacer tout l\'historique ?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                updateStats();
+                renderHistory();
+            }
+        }
+
+        // UI Updates
+        function updateStats() {
+            const history = getHistory();
+            const today = new Date().toDateString();
+            
+            // Count wagon sessions
+            const todayScans = history.filter(scan => 
+                new Date(scan.timestamp).toDateString() === today
+            ).length;
+
+            document.getElementById('totalScans').textContent = history.length;
+            document.getElementById('todayScans').textContent = todayScans;
+        }
+
+        function renderHistory(searchTerm = '') {
+            const history = getHistory();
+            const historyList = document.getElementById('historyList');
+
+            // Filter history based on search
+            const filtered = searchTerm ? history.filter(scan => {
+                if (scan.type === 'wagon_session') {
+                    return scan.wagonNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           scan.axles.some(axle => axle.content.toLowerCase().includes(searchTerm.toLowerCase()));
+                } else {
+                    return scan.content.toLowerCase().includes(searchTerm.toLowerCase());
+                }
+            }) : history;
+
+            if (filtered.length === 0) {
+                historyList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <p>${searchTerm ? 'Aucun résultat trouvé' : 'Aucun scan enregistré'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            historyList.innerHTML = filtered.map(scan => {
+                if (scan.type === 'wagon_session') {
+                    // Wagon session display
+                    return `
+                        <div class="history-item">
+                            <div class="history-item-header">
+                                <div>
+                                    <span style="font-size: 1.1em; font-weight: bold; color: #1e293b;">🚂 ${escapeHtml(scan.wagonNumber)}</span>
+                                    <span style="margin-left: 10px; color: #64748b; font-size: 0.9em;">${scan.totalAxles} essieux</span>
+                                </div>
+                                <button class="btn btn-secondary btn-icon" onclick="deleteScan(${scan.id})">🗑️</button>
+                            </div>
+                            <div style="font-size: 0.85em; color: #64748b; margin-bottom: 10px;">🕐 ${scan.date}</div>
+                            <div class="history-content">
+                                ${scan.axles.map((axle, idx) => {
+                                    if (axle.parsedData && axle.parsedData.isStructured) {
+                                        return `
+                                            <details style="margin-bottom: 10px;">
+                                                <summary style="cursor: pointer; font-weight: 600; padding: 8px; background: #f8fafc; border-radius: 4px;">
+                                                    ⚙️ Essieu ${idx + 1} - ${escapeHtml(axle.parsedData.data['N° de série'])}
+                                                </summary>
+                                                <div style="padding: 10px; margin-top: 5px;">
+                                                    <div class="history-mini-table">
+                                                        ${Object.entries(axle.parsedData.data).map(([key, value]) => `
+                                                            <div class="label">${key}:</div>
+                                                            <div class="value">${escapeHtml(value)}</div>
+                                                        `).join('')}
+                                                    </div>
+                                                </div>
+                                            </details>
+                                        `;
+                                    } else {
+                                        return `
+                                            <details style="margin-bottom: 10px;">
+                                                <summary style="cursor: pointer; font-weight: 600; padding: 8px; background: #f8fafc; border-radius: 4px;">
+                                                    ⚙️ Essieu ${idx + 1}
+                                                </summary>
+                                                <div style="padding: 10px; margin-top: 5px; font-family: 'Courier New', monospace;">
+                                                    ${escapeHtml(axle.content)}
+                                                </div>
+                                            </details>
+                                        `;
+                                    }
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Regular scan display
+                    let contentHtml;
+                    
+                    if (scan.parsedData && scan.parsedData.isStructured) {
+                        contentHtml = `
+                            <div class="history-mini-table">
+                                ${Object.entries(scan.parsedData.data).map(([key, value]) => `
+                                    <div class="label">${key}:</div>
+                                    <div class="value">${escapeHtml(value)}</div>
+                                `).join('')}
+                            </div>
+                        `;
+                    } else {
+                        contentHtml = `<div style="font-family: 'Courier New', monospace;">${escapeHtml(scan.content)}</div>`;
+                    }
+
+                    return `
+                        <div class="history-item">
+                            <div class="history-item-header">
+                                <span class="history-date">🕐 ${scan.date}</span>
+                                <button class="btn btn-secondary btn-icon" onclick="deleteScan(${scan.id})">🗑️</button>
+                            </div>
+                            <div class="history-content">${contentHtml}</div>
+                        </div>
+                    `;
+                }
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showResult(content) {
+            const parsed = parseQRData(content);
+            const resultContent = document.getElementById('resultContent');
+
+            if (parsed.isStructured) {
+                resultContent.innerHTML = `
+                    <table class="data-table">
+                        ${Object.entries(parsed.data).map(([key, value]) => `
+                            <tr>
+                                <td>${key}</td>
+                                <td>${escapeHtml(value)}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                    <div class="raw-data-toggle" onclick="toggleRawData()">📋 Voir données brutes</div>
+                    <div class="raw-data" id="rawData" style="display: none;">
+                        ${escapeHtml(parsed.raw)}
+                    </div>
+                `;
+            } else {
+                resultContent.innerHTML = `<div style="font-family: 'Courier New', monospace;">${escapeHtml(content)}</div>`;
+            }
+
+            document.getElementById('resultArea').classList.add('show');
+            document.getElementById('errorArea').classList.remove('show');
+            
+            // Add to session if active, otherwise save as standalone
+            if (currentSession) {
+                addAxleScan(content, currentSession.scannedAxles.length + 1);
+            } else {
+                addScan(content);
+            }
+        }
+
+        function toggleRawData() {
+            const rawData = document.getElementById('rawData');
+            rawData.style.display = rawData.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorArea').classList.add('show');
+            document.getElementById('resultArea').classList.remove('show');
+        }
+
+        // QR Code Processing
+        function processImage(file) {
+            if (!file.type.match('image.*')) {
+                showError('Veuillez sélectionner une image valide');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                    if (code) {
+                        showResult(code.data);
+                    } else {
+                        showError('Aucun QR code détecté dans cette image. Assurez-vous que le QR code est visible et net.');
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            const history = getHistory();
+            if (history.length === 0) {
+                alert('Aucune donnée à exporter');
+                return;
+            }
+
+            let csvRows = [];
+            
+            // Header
+            csvRows.push(['Type', 'Date', 'N° Wagon', 'N° Essieu', ...FIELD_NAMES]);
+
+            // Data rows
+            history.forEach(scan => {
+                if (scan.type === 'wagon_session') {
+                    // Wagon session - one row per axle
+                    scan.axles.forEach((axle, idx) => {
+                        if (axle.parsedData && axle.parsedData.isStructured) {
+                            csvRows.push([
+                                'Wagon',
+                                scan.date,
+                                scan.wagonNumber,
+                                `Essieu ${idx + 1}`,
+                                ...FIELD_NAMES.map(field => axle.parsedData.data[field] || '')
+                            ]);
+                        } else {
+                            csvRows.push([
+                                'Wagon',
+                                scan.date,
+                                scan.wagonNumber,
+                                `Essieu ${idx + 1}`,
+                                axle.content,
+                                '', '', '', '', ''
+                            ]);
+                        }
+                    });
+                } else {
+                    // Regular scan
+                    if (scan.parsedData && scan.parsedData.isStructured) {
+                        csvRows.push([
+                            'Individuel',
+                            scan.date,
+                            '',
+                            '',
+                            ...FIELD_NAMES.map(field => scan.parsedData.data[field] || '')
+                        ]);
+                    } else {
+                        csvRows.push([
+                            'Individuel',
+                            scan.date,
+                            '',
+                            '',
+                            scan.content,
+                            '', '', '', '', ''
+                        ]);
+                    }
+                }
+            });
+
+            const csvContent = csvRows.map(row => 
+                row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+            ).join('\n');
+
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `qr_scans_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        // Event Listeners
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const cameraInput = document.getElementById('cameraInput');
+        const searchInput = document.getElementById('searchInput');
+        const wagonNumberInput = document.getElementById('wagonNumber');
+        const scanMethodModal = document.getElementById('scanMethodModal');
+        const cameraModal = document.getElementById('cameraModal');
+        const cameraVideo = document.getElementById('cameraVideo');
+        const cameraCanvas = document.getElementById('cameraCanvas');
+        let cameraStream = null;
+
+        // Auto-format wagon number: xx xx xxxx xxx-x
+        wagonNumberInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/[^\d]/g, ''); // Keep only digits
+            let formatted = '';
+
+            if (value.length > 0) {
+                // First 2 digits
+                formatted = value.substring(0, 2);
+            }
+            if (value.length > 2) {
+                // Next 2 digits
+                formatted += ' ' + value.substring(2, 4);
+            }
+            if (value.length > 4) {
+                // Next 4 digits
+                formatted += ' ' + value.substring(4, 8);
+            }
+            if (value.length > 8) {
+                // Next 3 digits
+                formatted += ' ' + value.substring(8, 11);
+            }
+            if (value.length > 11) {
+                // Last digit with dash
+                formatted += '-' + value.substring(11, 12);
+            }
+
+            e.target.value = formatted;
+        });
+
+        // Camera functions
+        async function startCamera() {
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' },
+                    audio: false 
+                });
+                cameraVideo.srcObject = cameraStream;
+                cameraModal.classList.add('show');
+                scanMethodModal.classList.remove('show');
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('❌ Impossible d\'accéder à la caméra. Vérifiez les permissions ou utilisez l\'upload d\'image.');
+                scanMethodModal.classList.remove('show');
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            cameraModal.classList.remove('show');
+        }
+
+        function capturePhoto() {
+            const context = cameraCanvas.getContext('2d');
+            cameraCanvas.width = cameraVideo.videoWidth;
+            cameraCanvas.height = cameraVideo.videoHeight;
+            context.drawImage(cameraVideo, 0, 0);
+            
+            cameraCanvas.toBlob((blob) => {
+                const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+                processImage(file);
+                stopCamera();
+            }, 'image/jpeg', 0.95);
+        }
+
+        // Modal controls
+        document.getElementById('useCameraBtn').addEventListener('click', startCamera);
+        
+        document.getElementById('useFileBtn').addEventListener('click', () => {
+            scanMethodModal.classList.remove('show');
+            fileInput.click();
+        });
+
+        document.getElementById('closeCamera').addEventListener('click', stopCamera);
+        document.getElementById('cancelCamera').addEventListener('click', stopCamera);
+        document.getElementById('captureBtn').addEventListener('click', capturePhoto);
+
+        // Upload area click handler
+        uploadArea.addEventListener('click', () => {
+            scanMethodModal.classList.add('show');
+        });
+
+        document.getElementById('startScanBtn').addEventListener('click', () => {
+            const wagonNumber = document.getElementById('wagonNumber').value.trim();
+            const axleCount = document.getElementById('axleCount').value;
+
+            if (!wagonNumber) {
+                alert('⚠️ Veuillez renseigner le numéro d\'immatriculation du wagon');
+                return;
+            }
+
+            if (!axleCount || axleCount < 1) {
+                alert('⚠️ Veuillez renseigner un nombre d\'essieux valide');
+                return;
+            }
+
+            startNewSession(wagonNumber, axleCount);
+        });
+
+        document.getElementById('newWagonBtn').addEventListener('click', () => {
+            if (currentSession && currentSession.scannedAxles.length > 0) {
+                if (!confirm('⚠️ Le scan en cours sera perdu. Continuer ?')) {
+                    return;
+                }
+            }
+            saveSession(null);
+            showWagonForm();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                processImage(e.target.files[0]);
+                e.target.value = ''; // Reset input to allow same file again
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                processImage(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Search functionality
+        searchInput.addEventListener('input', (e) => {
+            renderHistory(e.target.value);
+        });
+
+        document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+        document.getElementById('clearBtn').addEventListener('click', clearAllHistory);
+
+        // Initialize
+        currentSession = loadSession();
+        if (currentSession) {
+            showScanningArea();
+            updateProgress();
+        } else {
+            showWagonForm();
+        }
+        updateStats();
+        renderHistory();
+
+        // PWA Installation
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install banner
+            const installBanner = document.createElement('div');
+            installBanner.id = 'installBanner';
+            installBanner.innerHTML = `
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: center; position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; box-shadow: 0 -4px 12px rgba(0,0,0,0.2);">
+                    <div style="max-width: 800px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+                        <div style="text-align: left; flex: 1;">
+                            <div style="font-weight: bold; margin-bottom: 5px;">📱 Installer l'application</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;">Accédez plus rapidement à votre scanner QR</div>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="installBtn" style="background: white; color: #667eea; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Installer</button>
+                            <button id="dismissInstall" style="background: transparent; color: white; padding: 10px; border: 2px solid white; border-radius: 8px; cursor: pointer;">✕</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(installBanner);
+            
+            document.getElementById('installBtn').addEventListener('click', async () => {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('PWA installed');
+                }
+                installBanner.remove();
+                deferredPrompt = null;
+            });
+            
+            document.getElementById('dismissInstall').addEventListener('click', () => {
+                installBanner.remove();
+            });
+        });
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed'));
+            });
+        }
+    </script>
 </body>
 </html>
