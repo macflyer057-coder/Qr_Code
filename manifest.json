@@ -2,7 +2,7 @@
   "name": "Scanner QR Code Wagons",
   "short_name": "QR Scanner",
   "description": "Scanner de QR codes pour essieux de wagons avec historique et export CSV",
-  "start_url": "./qr-scanner.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#667eea",
